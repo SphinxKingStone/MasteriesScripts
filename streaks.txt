@@ -1,0 +1,48 @@
+import requests
+from bs4 import BeautifulSoup
+import time
+
+user_name_list = []
+url = 'https://farmrpg.com/profile.php?user_name='
+results = []
+sorted_results = []
+
+# filling up user_name_list from file
+ulist_file = open('user_name_list.txt', 'r')
+for line in ulist_file:
+	user_name_list.append(line.strip())
+ulist_file.close()
+
+# send request and parse it
+for user_name in user_name_list:
+	response = requests.get(url + user_name)
+
+	soup = BeautifulSoup(response.text, 'lxml')
+	header = soup.find_all('div', class_='item-title')
+	content = soup.find_all('div', class_='item-after')
+
+	dict = {'name': user_name, 'masteries': '0', 'grand_masteries': '0', 'mega_masteries': '0'}
+
+	for i in range(0, len(content)):
+		if "Items Mastered" in header[i].text:
+			dict['masteries'] = content[i].text[1:]
+		if "Items Grand Mastered" in header[i].text:
+			dict['grand_masteries']= content[i].text[1:]
+		if "Items Mega-Mastered" in header[i].text:
+			dict['mega_masteries'] = content[i].text[1:]
+	results.append(dict)
+	time.sleep(1)
+
+# sort results
+sorted_results = sorted(results, key=lambda d: d['masteries'], reverse=True)
+
+
+# write sorted results to file
+fp = open('results.txt', 'w')
+for d in sorted_results:
+	fp.write(d['name'] + '\n')
+	fp.write('Masteries: ' + d['masteries'] + '\n')
+	fp.write('Grand Masteries: ' + d['grand_masteries'] + '\n')
+	fp.write('Mega-Masteries: ' + d['mega_masteries'] + '\n')
+	fp.write("" + '\n')
+fp.close()
